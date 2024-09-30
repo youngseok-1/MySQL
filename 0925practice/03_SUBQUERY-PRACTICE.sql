@@ -65,23 +65,67 @@ WHERE E.SALARY = (
 -- 6. 관리자에 해당하는 직원에 대한 정보와 관리자가 아닌 직원의 정보를 추출하여 조회하세요.
 -- 사번, 이름, 부서명, 직급, '관리자' AS 구분 / '직원' AS 구분
 -- HINT!! is not null, union(혹은 then, else), distinct
- SELECT
- 	E.EMP_NO '사번',
- 	E.EMP_NAME '이름',
-	D.DEPT_TITLE '부서명',
-    '관리자' AS 구분
-	FROM EMPLOYEE E
-	JOIN DEPARTMENT D ON E.DEPT_CODE = D_DEPT_ID
-    WHERE E.MANAGER_ID IS NULL
-    
-    
-    
+ -- 관리자인 경우: MANAGER_ID가 다른 직원에게 참조되는 경우
+-- 관리자인 직원: EMP_ID가 다른 직원의 MANAGER_ID에 속한 경우
+-- 관리자 먼저 사번 오름차순 정렬
+-- 관리자 목록 먼저 출력
+SELECT
+    E.EMP_ID AS '사번',
+    E.EMP_NAME AS '이름',
+    D.DEPT_TITLE AS '부서명',
+    J.JOB_NAME AS '직급',
+    '관리자' AS '구분'
+FROM EMPLOYEE E
+JOIN DEPARTMENT D ON E.DEPT_CODE = D.DEPT_ID
+JOIN JOB J ON E.JOB_CODE = J.JOB_CODE
+WHERE E.EMP_ID IN (
+    SELECT DISTINCT MANAGER_ID
+    FROM EMPLOYEE
+    WHERE MANAGER_ID IS NOT NULL
+)
+
+UNION 
+
+-- 직원 목록 출력
+SELECT
+    E.EMP_ID AS '사번',
+    E.EMP_NAME AS '이름',
+    D.DEPT_TITLE AS '부서명',
+    J.JOB_NAME AS '직급',
+    '직원' AS '구분'
+FROM EMPLOYEE E
+JOIN DEPARTMENT D ON E.DEPT_CODE = D.DEPT_ID
+JOIN JOB J ON E.JOB_CODE = J.JOB_CODE
+WHERE E.MANAGER_ID IS NOT NULL
+
+ORDER BY '구분' DESC, '사번' ASC;
 -- 7. 자기 직급의 평균 급여를 받고 있는 직원의 사번, 이름, 직급코드, 급여를 조회하세요.
 -- 단, 급여와 급여 평균은 만원단위로 계산하세요.
 -- HINT!! round(컬럼명, -5)
-
+-- 7. 자기 직급의 평균 급여를 받고 있는 직원의 사번, 이름, 직급코드, 급여를 조회하세요.
+-- 단, 급여와 급여 평균은 만원단위로 계산하세요.
+-- HINT!! round(컬럼명, -5)
+SELECT 
+	   E.EMP_CODE AS '사번',
+       E.EMP_NAME AS '이름',
+       E.JOB_CODE AS '직급코드',
+       E.SALARY AS '급여'
+  FROM EMPLOYEE E
+ WHERE (E.JOB_CODE, E.SALARY) IN (SELECT A.JOB_CODE
+                                       , ROUND(AVG(A.SALARY), -5)
+                                    FROM EMPLOYEE E2
+                                   GROUP BY A.JOB_CODE
+                                 );
 -- 8. 퇴사한 여직원과 같은 부서, 같은 직급에 해당하는 사원의 이름, 직급, 부서, 입사일을 조회하세요.
-
+SELECT
+		E.EMP_NAME AS '이름',
+        J.JOB_NAME AS '직급',
+        D.DEPT_TITLE AS '부서',
+        E.HIRE_DATE AS '입사일'
+        FROM EMPLOYEE E
+        JOIN JOB J ON E.JOB_CODE = J.JOB_CODE 
+        JOIN DEPARTMENT D ON E.DEPT_CODE = D.DEPT_ID
+        WHERE (E.DEPT_TITLE, E.JOB_CODE) IN (SELECT 
 -- 9. 급여 평균 3위 안에 드는 부서의 부서 코드와 부서명, 평균급여를 조회하세요.
 -- HINT!! limit
 
